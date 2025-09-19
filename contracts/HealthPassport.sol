@@ -35,6 +35,12 @@ contract HealthPassport is IHealthPassport, ERC721, ERC721URIStorage {
         UserData userData;       // Encrypted user information
     }
 
+    struct StoredProof {
+        uint256 proofId;
+        IZKPVerifier.DemographicCategory category;
+        uint256 value;
+    }
+
     // Analytics tracking (anonymized)
     struct AnalyticsData {
         uint256 totalPassports;
@@ -57,6 +63,7 @@ contract HealthPassport is IHealthPassport, ERC721, ERC721URIStorage {
     uint256 private _nextTokenId = 1;
 
     mapping(uint256 => VerificationRequest) public verificationRequests;
+    mapping(uint256 => StoredProof[]) private _storedProofs;
 
     event PassportMinted(uint256 indexed tokenId, address indexed owner);
     event PassportUpserted(uint256 indexed tokenId, string dataURI, bytes32 dataHash);
@@ -106,9 +113,16 @@ contract HealthPassport is IHealthPassport, ERC721, ERC721URIStorage {
         p.status = Status.Pending;
         p.userData = userData;
 
-        // Verify and store ZK proofs for demographics
+        // Submit ZK proofs for off-chain verification via zkVerify network
         if (demographicProofs.length > 0) {
-            zkpVerifier.batchVerifyDemographicProofs(demographicProofs, categories, values);
+            require(categories.length == demographicProofs.length && values.length == demographicProofs.length, "Arrays length mismatch");
+            uint256[] memory proofIds = zkpVerifier.submitProofBatch(demographicProofs, categories, values);
+            for (uint256 i = 0; i < proofIds.length; i++) {
+                StoredProof storage slot = _storedProofs[tokenId].push();
+                slot.proofId = proofIds[i];
+                slot.category = categories[i];
+                slot.value = values[i];
+            }
         }
 
         // Update analytics
@@ -156,14 +170,21 @@ contract HealthPassport is IHealthPassport, ERC721, ERC721URIStorage {
         if (!accessManager.isVerifier(msg.sender)) revert NotVerifier();
         Passport storage p = _passports[tokenId];
         require(p.createdAt > 0, "Passport: no record");
+        bool wasVerified = p.status == Status.Verified;
         p.status = approved ? Status.Verified : Status.Rejected;
         p.lastVerifier = msg.sender;
         p.verificationURI = verificationURI;
         p.updatedAt = block.timestamp;
 
-        if (approved) {
+        if (approved && !wasVerified) {
             _analytics.verifiedPassports++;
             analytics.updatePassportMetrics(_analytics.totalPassports, _analytics.verifiedPassports, 0);
+
+            StoredProof[] storage proofs = _storedProofs[tokenId];
+            for (uint256 i = 0; i < proofs.length; i++) {
+                require(zkpVerifier.isVerified(proofs[i].proofId), "Proof not verified");
+                analytics.recordVerifiedDemographic(uint8(proofs[i].category), proofs[i].value, 1);
+            }
         }
 
         verificationRequests[tokenId].fulfilled = true;
@@ -194,6 +215,32 @@ contract HealthPassport is IHealthPassport, ERC721, ERC721URIStorage {
     function getUserData(uint256 tokenId) external view override returns (UserData memory) {
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         return _passports[tokenId].userData;
+    }
+
+    function getProofRecords(uint256 tokenId)
+        external
+        view
+        returns (
+            uint256[] memory proofIds,
+            IZKPVerifier.DemographicCategory[] memory categories,
+            uint256[] memory values,
+            bool[] memory verified
+        )
+    {
+        StoredProof[] storage records = _storedProofs[tokenId];
+        uint256 length = records.length;
+        proofIds = new uint256[](length);
+        categories = new IZKPVerifier.DemographicCategory[](length);
+        values = new uint256[](length);
+        verified = new bool[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            StoredProof storage record = records[i];
+            proofIds[i] = record.proofId;
+            categories[i] = record.category;
+            values[i] = record.value;
+            verified[i] = zkpVerifier.isVerified(record.proofId);
+        }
     }
 
     function passportOf(uint256 tokenId) external view override returns (

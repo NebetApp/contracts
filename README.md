@@ -15,3 +15,7 @@
 ## Notes
 - Consider adding EIP-712 `permit()` support to streamline pledging.
 - Consider allowlists for accepted ERC20s and per-campaign KYC policy.
+- Proof verification is now delegated to zkVerify: proofs submitted during mint are relayed off-chain and only contribute to analytics after the relayer confirms zkVerify has attested them.
+
+## Manual Testing UI
+- A lightweight dashboard lives in `manual-app/`. Follow `manual-app/README.md` to deploy the contracts locally and interact with every module (passport mint/verify, analytics, funding campaigns, and ZK proofs).

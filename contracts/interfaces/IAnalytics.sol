@@ -4,18 +4,8 @@ pragma solidity ^0.8.24;
 
 interface IAnalytics {
     function updatePassportMetrics(uint256 totalPassports, uint256 verifiedPassports, uint256 revenue) external;
-    function updateDemographicData(
-        uint256 birthYear,
-        bytes32 nationalityHash,
-        bytes32 vaccineHash,
-        bytes32 medicationHash,
-        bytes32 allergyHash,
-        bytes32 treatmentHash
-    ) external;
-    function getGlobalMetrics() external view returns (
-        uint256 totalPassports,
-        uint256 verifiedPassports,
-        uint256 totalRevenue,
-        uint256 lastUpdated
-    );
+    function recordVerifiedDemographic(uint8 category, uint256 value, uint256 amount) external;
+    function getGlobalMetrics() external view returns (uint256, uint256, uint256, uint256);
+    function getVerifiedDemographicCount(uint8 category, uint256 value) external view returns (uint256);
+    function getVerifiedDemographicBatch(uint8[] calldata categories, uint256[] calldata values) external view returns (uint256[] memory);
 }

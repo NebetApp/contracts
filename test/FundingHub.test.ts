@@ -6,7 +6,7 @@ import { parseUnits } from "viem";
 describe("FundingHub", async function () {
   const { viem } = await network.connect();
   const publicClient = await viem.getPublicClient();
-  const [deployer, user1, user2, verifier] = await viem.getWalletClients();
+  const [deployer, relayer, user1, verifier] = await viem.getWalletClients();
 
   let fundingHub: any;
   let campaignImplementation: any;
@@ -54,7 +54,7 @@ describe("FundingHub", async function () {
     ]);
 
     // Deploy ZKPVerifier
-    zkpVerifier = await viem.deployContract("ZKPVerifier");
+    zkpVerifier = await viem.deployContract("ZKPVerifier", [deployer.account.address, relayer.account.address]);
 
     // Deploy Analytics with correct constructor
     analytics = await viem.deployContract("Analytics", [
@@ -70,6 +70,8 @@ describe("FundingHub", async function () {
       analytics.address,
       zkpVerifier.address
     ]);
+
+    await analytics.write.setHealthPassport([healthPassport.address], { account: deployer.account });
 
     // Deploy funding token
     fundingToken = await viem.deployContract("MockERC20", [
@@ -91,14 +93,12 @@ describe("FundingHub", async function () {
 
     // Setup: Mint USDT for users
     await mockUSDT.write.mint([user1.account.address, parseUnits("1000", 6)]);
-    await mockUSDT.write.mint([user2.account.address, parseUnits("1000", 6)]);
 
     // Setup: Mint funding tokens for users  
     await fundingToken.write.mint([user1.account.address, parseUnits("1000", 18)]);
-    await fundingToken.write.mint([user2.account.address, parseUnits("1000", 18)]);
 
     // Setup: Add deployer as verifier
-    await accessManager.write.addVerifier([deployer.account.address, "Test Verifier", "https://test.com"], { account: deployer.account });
+    await accessManager.write.addVerifier([verifier.account.address, "Test Verifier", "https://test.com"], { account: deployer.account });
 
     // Setup: Create and verify health passport for beneficiary
     const proofs = [createMockProof(true)];
@@ -118,7 +118,17 @@ describe("FundingHub", async function () {
 
     // Verify the passport (admin approval)
     await healthPassport.write.submitForVerification([1n], { account: user1.account }); // Manual verification
-    await healthPassport.write.verify([1n, true, ""], { account: deployer.account });
+    const proofRecords = await healthPassport.read.getProofRecords([1n]);
+    const proofIds = proofRecords[0] as bigint[];
+    const submissionIds = proofIds.map((_, index) => {
+      const hex = (100 + index).toString(16).padStart(64, "0");
+      return (`0x${hex}`) as `0x${string}`;
+    });
+    if (proofIds.length > 0) {
+      await zkpVerifier.write.markVerifiedBatch([proofIds, submissionIds], { account: relayer.account });
+    }
+
+    await healthPassport.write.verify([1n, true, "https://attestation"], { account: verifier.account });
   });
 
   describe("Deployment", function () {

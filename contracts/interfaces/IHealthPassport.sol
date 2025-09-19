@@ -32,6 +32,15 @@ interface IHealthPassport {
 
     // Data access (only for NFT owner)
     function getUserData(uint256 tokenId) external view returns (UserData memory);
+    function getProofRecords(uint256 tokenId)
+        external
+        view
+        returns (
+            uint256[] memory proofIds,
+            IZKPVerifier.DemographicCategory[] memory categories,
+            uint256[] memory values,
+            bool[] memory verified
+        );
 
     // Verification functions
     function submitForVerification(uint256 tokenId) external;

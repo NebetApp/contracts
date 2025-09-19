@@ -22,10 +22,11 @@ This is a privacy-first health passport and crowdfunding dApp with three core co
 - Analytics: ZK-verified demographic data (birth year ranges, nationalities) for marketplace
 
 ### Zero-Knowledge Proof System
-- **ZKPVerifier Contract**: Verifies demographic proofs without revealing underlying data
+- **ZKPVerifier Adapter**: Emits zkVerify proof jobs and records demographic counts once a relayer reports successful verification
 - **Demographic Categories**: BirthYear, Nationality, VaccineStatus, MedicationType, AllergyType, TreatmentType
 - **Privacy-Preserving Analytics**: Prove properties like "born in 1990s" without revealing exact birth date
 - **Batch Verification**: Submit multiple demographic proofs when minting passport
+- **Asynchronous Attestation**: HealthPassport blocks manual verification until the zkVerify relayer marks every submitted proof as verified
 
 ### Crowdfunding Mechanics
 - **Pledge/Unpledge**: Donors can commit tokens before deadline, unpledge if needed
@@ -94,19 +95,20 @@ const events = await publicClient.getContractEvents({...});
 
 ### Passport Creation Flow
 ```solidity
-// 1. User generates ZK proofs for demographics (e.g., birth year range)
-IZKPVerifier.Proof[] memory proofs = generateDemographicProofs(userData);
+// 1. Patient generates zk-SNARK proofs off-chain (to be verified by zkVerify)
+IZKPVerifier.Proof[] memory proofs = assembleDemographicProofs(userData);
 
-// 2. User pays 50 USDT and provides encrypted data + proofs
+// 2. Collect fee and mint NFT
 usdtToken.safeTransferFrom(msg.sender, address(this), PASSPORT_FEE);
-
-// 3. Mint NFT and verify demographic proofs
 tokenId = _nextTokenId++;
 _mint(msg.sender, tokenId);
-zkpVerifier.batchVerifyDemographicProofs(proofs, categories, values);
 
-// 4. Update analytics with verified demographic counts
-analytics.updatePassportMetrics(totalPassports, verifiedPassports, PASSPORT_FEE);
+// 3. Queue proofs for zkVerify network
+uint256[] memory proofIds = zkpVerifier.submitProofBatch(proofs, categories, values);
+_storeProofReferences(tokenId, proofIds, categories, values);
+
+// 4. Update aggregate metrics (demographic counts are updated once zkVerify attests)
+analytics.updatePassportMetrics(_analytics.totalPassports, _analytics.verifiedPassports, PASSPORT_FEE);
 ```
 
 ### Verification Workflow
@@ -125,18 +127,15 @@ verificationRequests[tokenId].fulfilled = true;
 
 ### Analytics Data Tracking
 ```solidity
-// ZK-verified demographic queries without revealing individual data
-function getDemographicRangeCount(
-    IZKPVerifier.DemographicCategory.BirthYear,
-    1990,
-    1999
-) returns (count); // How many users proved birth in 1990s?
+// zkVerify relayer confirms proof completion
+zkpVerifier.markVerifiedBatch(proofIds, submissionIds);
 
-// Sell aggregated data packages
-function purchaseAnalytics(packageId) external {
-    usdtToken.safeTransferFrom(msg.sender, address(this), package.price);
-    // Return ZK-verified demographic statistics
-}
+// HealthPassport.verify() checks every proofId is verified before approving
+require(zkpVerifier.isVerified(proofId), "Proof not verified");
+analytics.recordVerifiedDemographic(uint8(category), value, 1);
+
+// Frontend queries only verified aggregates
+uint256 count = analytics.getVerifiedDemographicCount(uint8(IZKPVerifier.DemographicCategory.BirthYear), 1990);
 ```
 
 ### Campaign Creation with NFT Verification
@@ -154,7 +153,7 @@ ITreatmentCampaign(campaign).initialize(address(this), token, beneficiary, payou
 - `contracts/AccessManager.sol`: Central RBAC and verifier registry
 - `contracts/HealthPassport.sol`: ERC721 NFT with encrypted health data and verification
 - `contracts/Analytics.sol`: Anonymized metrics tracking and data marketplace
-- `contracts/ZKPVerifier.sol`: Zero-knowledge proof verification for demographics
+- `contracts/ZKPVerifier.sol`: zkVerify adapter that queues proofs and records verified demographics
 - `contracts/FundingHub.sol`: Campaign factory with NFT-based beneficiary verification
 - `contracts/TreatmentCampaign.sol`: Individual crowdfunding campaign logic
 - `hardhat.config.ts`: Multi-network configuration with OP Stack support</content>

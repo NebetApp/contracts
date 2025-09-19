@@ -18,6 +18,7 @@ contract Analytics {
     IAccessManager public immutable accessManager;
     IZKPVerifier public immutable zkpVerifier;
     IERC20 public immutable usdtToken;
+    address public healthPassport;
 
     // Analytics data structures (all anonymized)
     struct GlobalMetrics {
@@ -38,6 +39,7 @@ contract Analytics {
     GlobalMetrics public globalMetrics;
     mapping(uint256 => AnalyticsPackage) public analyticsPackages;
     uint256 public nextPackageId = 1;
+    mapping(bytes32 => uint256) private _verifiedDemographicCounts;
 
     event PassportMetricsUpdated(uint256 totalPassports, uint256 verifiedPassports);
     event AnalyticsPackageCreated(uint256 indexed packageId, string name, uint256 price);
@@ -53,7 +55,7 @@ contract Analytics {
     }
 
     modifier onlyHealthPassport() {
-        // This would need to be set during deployment
+        require(msg.sender == healthPassport && healthPassport != address(0), "Not passport");
         _;
     }
 
@@ -61,6 +63,21 @@ contract Analytics {
         accessManager = _accessManager;
         zkpVerifier = _zkpVerifier;
         usdtToken = _usdtToken;
+    }
+
+    event HealthPassportSet(address indexed account);
+    event VerifiedDemographicRecorded(uint8 indexed category, uint256 indexed value, uint256 amount);
+
+    function setHealthPassport(address account) external {
+        require(healthPassport == address(0), "Passport set");
+        bytes32 adminRole = accessManager.DEFAULT_ADMIN_ROLE();
+        (bool ok, bytes memory data) = address(accessManager).staticcall(
+            abi.encodeWithSignature("hasRole(bytes32,address)", adminRole, msg.sender)
+        );
+        require(ok && abi.decode(data, (bool)), "Not admin");
+
+        healthPassport = account;
+        emit HealthPassportSet(account);
     }
 
     /**
@@ -133,32 +150,37 @@ contract Analytics {
         );
     }
 
-    /**
-     * @notice Get demographic count using ZK-verified proofs
-     * @param category The demographic category
-     * @param value The specific value/range
-     * @return count Number of ZK-verified proofs for this demographic
-     */
-    function getDemographicCount(
-        IZKPVerifier.DemographicCategory category,
+    function recordVerifiedDemographic(
+        uint8 category,
+        uint256 value,
+        uint256 amount
+    ) external onlyHealthPassport {
+        bytes32 key = keccak256(abi.encodePacked(category, value));
+        _verifiedDemographicCounts[key] += amount;
+        emit VerifiedDemographicRecorded(category, value, amount);
+    }
+
+    function getVerifiedDemographicCount(
+        uint8 category,
         uint256 value
     ) external view returns (uint256 count) {
-        return zkpVerifier.getDemographicCount(category, value);
+        bytes32 key = keccak256(abi.encodePacked(category, value));
+        return _verifiedDemographicCounts[key];
     }
 
     /**
-     * @notice Get demographic range count using ZK-verified proofs
-     * @param category The demographic category
-     * @param minValue Minimum value in range
-     * @param maxValue Maximum value in range
-     * @return count Total count in the specified range
+     * @notice Bulk helper to retrieve a series of demographic counts
      */
-    function getDemographicRangeCount(
-        IZKPVerifier.DemographicCategory category,
-        uint256 minValue,
-        uint256 maxValue
-    ) external view returns (uint256 count) {
-        return zkpVerifier.getDemographicRangeCount(category, minValue, maxValue);
+    function getVerifiedDemographicBatch(
+        uint8[] calldata categories,
+        uint256[] calldata values
+    ) external view returns (uint256[] memory counts) {
+        require(categories.length == values.length, "Array length mismatch");
+        counts = new uint256[](categories.length);
+        for (uint256 i = 0; i < categories.length; i++) {
+            bytes32 key = keccak256(abi.encodePacked(categories[i], values[i]));
+            counts[i] = _verifiedDemographicCounts[key];
+        }
     }
 
     /**
