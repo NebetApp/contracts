@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IAccessManager} from "../interfaces/IAccessManager.sol";
-import {IHealthPassport} from "../interfaces/IHealthPassport.sol";
-import {ITreatmentCampaign} from "./ITreatmentCampaign.sol";
+import {IAccessManager} from "./interfaces/IAccessManager.sol";
+import {IHealthPassport} from "./interfaces/IHealthPassport.sol";
+import {ITreatmentCampaign} from "./interfaces/ITreatmentCampaign.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /**
  * @title FundingHub
@@ -46,16 +47,16 @@ contract FundingHub {
     }
 
     function createCampaign(
-        address beneficiary,
+        uint256 beneficiaryPassportId,
         address token,
         uint256 goal,
         uint64  deadline,
         address payout
     ) external returns (address campaign) {
-        require(passport.isVerified(beneficiary), "Beneficiary not verified");
+        require(passport.isVerified(beneficiaryPassportId), "Beneficiary not verified");
         campaign = campaignImplementation.clone();
-        ITreatmentCampaign(campaign).initialize(address(this), token, beneficiary, payout, goal, deadline);
-        emit CampaignCreated(campaign, beneficiary, token, goal, deadline, payout);
+        ITreatmentCampaign(campaign).initialize(address(this), token, ERC721(address(passport)).ownerOf(beneficiaryPassportId), payout, goal, deadline);
+        emit CampaignCreated(campaign, ERC721(address(passport)).ownerOf(beneficiaryPassportId), token, goal, deadline, payout);
     }
 
     function cancelCampaign(address campaign) external onlyAdmin {
