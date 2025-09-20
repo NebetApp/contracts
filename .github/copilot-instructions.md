@@ -61,6 +61,7 @@ const events = await publicClient.getContractEvents({...});
 - Configure networks in `hardhat.config.ts` with `chainType` for OP Stack support
 - Deploy order: AccessManager → ZKPVerifier → Analytics → HealthPassport → FundingHub
 - HealthPassport constructor needs: `IAccessManager`, `IERC20(usdtToken)`, `IAnalytics`, `IZKPVerifier`
+- Production-like deployments use `scripts/deploy-base-sepolia.ts --network baseSepolia` with env-driven admin/relayer/verifier addresses
 
 ### Scripts
 - TypeScript with ES modules (`"type": "module"` in package.json)

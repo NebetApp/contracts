@@ -17,5 +17,13 @@
 - Consider allowlists for accepted ERC20s and per-campaign KYC policy.
 - Proof verification is now delegated to zkVerify: proofs submitted during mint are relayed off-chain and only contribute to analytics after the relayer confirms zkVerify has attested them.
 
+## Deploying to Base Sepolia
+
+- Configure environment variables: `BASE_SEPOLIA_RPC_URL`, `BASE_SEPOLIA_DEPLOYER_KEY`, and optional overrides for admin/relayer/verifier addresses.
+- Run `npx hardhat run scripts/deploy-base-sepolia.ts --network baseSepolia`.
+- Update `manual-app/src/config.ts` with the emitted addresses and run the UI with `VITE_NETWORK=baseSepolia` and a valid RPC URL.
+- Point a relayer service at `contracts/ZKPVerifier.sol` to forward `ProofSubmitted` jobs to zkVerify and call `markVerified` when zkVerify confirms them.
+- A step-by-step guide lives in `docs/base-sepolia-deployment.md`, and the reference relayer setup is documented in `docs/relayer-setup.md`.
+
 ## Manual Testing UI
 - A lightweight dashboard lives in `manual-app/`. Follow `manual-app/README.md` to deploy the contracts locally and interact with every module (passport mint/verify, analytics, funding campaigns, and ZK proofs).

@@ -13,7 +13,6 @@ import {
   parseUnits,
   stringToHex
 } from "viem";
-import { hardhat } from "viem/chains";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import nacl from "tweetnacl";
 import * as naclUtil from "tweetnacl-util";
@@ -26,9 +25,7 @@ import {
   TREATMENT_CAMPAIGN_ABI,
   ZKP_VERIFIER_ABI
 } from "./abi";
-import { CONTRACTS } from "./config";
-
-const RPC_URL = "http://127.0.0.1:8545";
+import { CONTRACTS, NETWORK_CHAIN, NETWORK_LABEL, RPC_URL } from "./config";
 
 function isAddressLike(value: string): value is Address {
   return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
@@ -213,13 +210,13 @@ export default function App() {
   const queryClient = useQueryClient();
 
   const publicClient = useMemo(
-    () => createPublicClient({ chain: hardhat, transport: http(RPC_URL) }),
-    []
+    () => createPublicClient({ chain: NETWORK_CHAIN, transport: http(RPC_URL) }),
+    [RPC_URL]
   );
 
   const walletClient = useMemo(() => {
     if (!account || typeof window === "undefined" || !window.ethereum) return undefined;
-    return createWalletClient({ account, chain: hardhat, transport: custom(window.ethereum) });
+    return createWalletClient({ account, chain: NETWORK_CHAIN, transport: custom(window.ethereum) });
   }, [account]);
 
   useEffect(() => {
@@ -628,7 +625,7 @@ export default function App() {
             <button onClick={connectWallet}>Connect Wallet</button>
             <div className="status">
               <span>Account: {account ?? "—"}</span>
-              <span>Chain: {chainId ?? "—"}</span>
+              <span>Chain: {chainId ?? "—"} ({NETWORK_LABEL})</span>
             </div>
           </div>
           <div className="status">

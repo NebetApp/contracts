@@ -28,19 +28,26 @@ The deploy script writes `deployments/localhost-latest.json` and mints mock USDT
 
 ## 3. Point the UI at your deployment
 
-Update `manual-app/src/config.ts` with the addresses emitted in `deployments/localhost-latest.json`. If you rerun the deploy script, repeat this step (addresses change on every fresh node).
+`src/config.ts` ships with two presets:
 
-```ts
-export const CONTRACTS: ContractConfig = {
-  accessManager: "0x…",
-  analytics: "0x…",
-  fundingHub: "0x…",
-  healthPassport: "0x…",
-  mockUsdt: "0x…",
-  treatmentImplementation: "0x…",
-  zkpVerifier: "0x…"
-};
+- `local` – the default Hardhat addresses from `scripts/deploy-local.ts`
+- `baseSepolia` – placeholder zero addresses ready for production values
+
+Choose a network at build time with environment variables:
+
+```bash
+# Local Hardhat (default)
+VITE_NETWORK=local npm run dev
+
+# Base Sepolia – requires a real RPC URL
+VITE_NETWORK=baseSepolia \
+VITE_RPC_URL="https://base-sepolia.g.alchemy.com/v2/<your-key>" \
+npm run dev
 ```
+
+After running the base deployment, copy the contract addresses from
+`deployments/baseSepolia-latest.json` into the `baseSepolia.contracts` block inside
+`src/config.ts` before rebuilding the UI.
 
 ## 4. Launch the dashboard
 
