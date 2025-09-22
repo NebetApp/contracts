@@ -1,7 +1,13 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
+import "@nomicfoundation/hardhat-verify";
+import { config as loadEnv } from "dotenv";
 import { configVariable } from "hardhat/config";
+
+loadEnv();
+
+const basescanApiKey = process.env.BASESCAN_API_KEY ?? "";
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
@@ -41,6 +47,11 @@ const config: HardhatUserConfig = {
       chainType: "op",
       url: configVariable("BASE_SEPOLIA_RPC_URL"),
       accounts: [configVariable("BASE_SEPOLIA_DEPLOYER_KEY")],
+    },
+  },
+  verify: {
+    etherscan: {
+      apiKey: basescanApiKey,
     },
   },
 };

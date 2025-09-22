@@ -21,3 +21,5 @@
 /relayer/node_modules
 /relayer/dist
 /relayer/.env
+
+.relayer.env

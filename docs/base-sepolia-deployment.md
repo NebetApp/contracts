@@ -14,16 +14,18 @@ This walkthrough promotes the local Hardhat stack to the Base Sepolia testnet us
 Store secrets via environment variables; never commit them to Git.
 
 ```bash
-export BASE_SEPOLIA_RPC_URL="https://sepolia.base.org"
-export BASE_SEPOLIA_DEPLOYER_KEY="ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+export BASE_SEPOLIA_RPC_URL="https://base-sepolia.g.alchemy.com/v2/<your-api-key>"
+export BASE_SEPOLIA_DEPLOYER_KEY="49f38ae39346d7e69c8ed6bbd566879d3f0d1285a5fb8f1b2cf9246255446dde"
 
 # Optional overrides (default to deployer address if omitted)
-export BASE_ADMIN_ADDRESS="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+export BASE_ADMIN_ADDRESS="0xD48A97ED8835C7C3a04f2B9ba2c38507db4fF8eF"
 export BASE_RELAYER_ADDRESS="0x4f9f3a19B458f21B506A3E6740c8e0F97Eead0ca"
-export BASE_VERIFIER_ADDRESS="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
-export BASE_PATIENT_ADDRESS="0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
+export BASE_VERIFIER_ADDRESS="0xCe1e96121ed5536B5ba405481D65D8024DCd496C"
+export BASE_PATIENT_ADDRESS="0x319002e99AAF49Aed2afb89a64687ee0171048B2"
 export BASE_DONOR_ADDRESS="0x33D435EA4624bf699032f4BAD4159d95915Fb636"
 ```
+
+> ⚠️ The public `https://sepolia.base.org` endpoint is rate-limited and rejects write transactions with HTTP 403. Always use an authenticated RPC provider when broadcasting deployments.
 
 > \*The relayer is the service that listens for `ProofSubmitted` events, forwards jobs to zkVerify, and then calls `markVerified`/`markVerifiedBatch` once zkVerify has attested the proof.
 

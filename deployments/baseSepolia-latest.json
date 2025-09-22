@@ -1,0 +1,27 @@
+{
+  "network": "baseSepolia",
+  "deployer": "0x0581022188a628ce03cc2f4d276ad10f6916f864",
+  "admin": "0xD48A97ED8835C7C3a04f2B9ba2c38507db4fF8eF",
+  "relayer": "0x4f9f3a19B458f21B506A3E6740c8e0F97Eead0ca",
+  "verifier": "0xCe1e96121ed5536B5ba405481D65D8024DCd496C",
+  "patient": "0x319002e99AAF49Aed2afb89a64687ee0171048B2",
+  "donor": "0x33D435EA4624bf699032f4BAD4159d95915Fb636",
+  "blocks": {
+    "mockUsdt": "31332101",
+    "accessManager": "31332102",
+    "zkpVerifier": "31332102",
+    "analytics": "31332103",
+    "healthPassport": "31332104",
+    "treatmentImplementation": "31332104",
+    "fundingHub": "31332105"
+  },
+  "contracts": {
+    "accessManager": "0xc77f4d729d3b7f871d160e94828986341dd6c13f",
+    "analytics": "0xc638f354cb01f497ff16e7784d7731262727e209",
+    "fundingHub": "0xd91d12868043fda21bce7f4197ad5dbdd581f645",
+    "healthPassport": "0x0cc8beed92d1e39fb951ab5796ef11243452de0f",
+    "mockUsdt": "0x999e1c5fe5609a3f228b8b5e0ac3c4dc848b6623",
+    "treatmentImplementation": "0x4f8507e6b2d5cad7ef9893836228328ea9f426d0",
+    "zkpVerifier": "0xae36d4a13ed9f0edf3e9151faa042153e7bf3596"
+  }
+}

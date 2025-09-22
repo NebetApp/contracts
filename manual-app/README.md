@@ -41,7 +41,7 @@ VITE_NETWORK=local npm run dev
 
 # Base Sepolia – requires a real RPC URL
 VITE_NETWORK=baseSepolia \
-VITE_RPC_URL="https://base-sepolia.g.alchemy.com/v2/<your-key>" \
+VITE_RPC_URL="https://base-sepolia.g.alchemy.com/v2/_IKasD09mOWTR3Fs50avdymLR7dPy2-7" \
 npm run dev
 ```
 
